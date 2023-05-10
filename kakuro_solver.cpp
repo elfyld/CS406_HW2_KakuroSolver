@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string>
-#include <chrono>
+
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -9,60 +9,54 @@
 #include <array>
 #include <unordered_set>
 #include <omp.h>
+
 using namespace std;
 
-enum direction
-{
-    d_down,
-    d_right,
-    none
-};
+enum direction {d_down, d_right, none};
 
 #define COORD std::pair<int, int>
 
-// #define DEBUG
+//#define DEBUG
 
-/// Auxiliary functions
+int iter = 0;
 
-void display_arr(int *arr, int n)
-{
+///Auxiliary functions
 
-    cout << "arr: ";
+void display_arr(int* arr, int n){
 
-    for (int i = 0; i < n; i++)
-    {
-        cout << arr[i] << " ";
-    }
+  cout << "arr: ";
 
-    cout << endl;
+  for(int i = 0; i < n; i++){
+    cout << arr[i] << " ";
+  }
+
+  cout << endl;
+  
 }
 
-void print_coords(COORD start, COORD end)
-{
+void print_coords(COORD start, COORD end){
 
-    cout << "Start:" << start.first << "," << start.second << endl;
-    cout << "End:" << end.first << "," << end.second << endl;
+  cout << "Start:" << start.first << "," << start.second << endl;
+  cout << "End:" << end.first << "," << end.second << endl;
+  
 }
 
-int find_length(COORD start, COORD end, direction dir)
-{
+int find_length(COORD start, COORD end, direction dir){
 
-    if (dir == d_down)
-        return end.first - start.first;
-    if (dir == d_right)
-        return end.second - start.second;
+  if(dir == d_down)
+    return end.first - start.first;
+  if(dir == d_right)
+    return end.second - start.second;
 
-    return -1;
+  return -1;
 }
 
-void convert_sol(int **mat, int **&sol_mat, int m, int n)
-{
+void convert_sol(int** mat, int** &sol_mat, int m, int n){
 
-    sol_mat = new int *[m]; // Rows
-    for (int i = 0; i < m; i++)
-    {
-        sol_mat[i] = new int[n]; // Cols
-    }
+  sol_mat = new int*[m]; //Rows
+  for(int i = 0; i < m; i++){
+    sol_mat[i] = new int[n]; //Cols
+  }
 
   for(int i = 0; i < m; i++){
     for(int j = 0; j < n; j++){
@@ -74,226 +68,186 @@ void convert_sol(int **mat, int **&sol_mat, int m, int n)
   }
 }
 
-void print_one_matrix(int **matrix, int m, int n)
-{
-    std::cout << "Matrix: " << std::endl;
-    for (int i = 0; i < m; i++)
-    { // rows
-        for (int j = 0; j < n; j++)
-        { // cols
-            std::cout << matrix[i][j] << "\t";
-        }
-        std::cout << "\n";
+void print_one_matrix(int** matrix, int m, int n){
+  std::cout << "Matrix: " << std::endl;
+  for(int i = 0; i < m; i++){ //rows
+    for(int j = 0; j < n; j++){ //cols
+      std::cout << matrix[i][j] << "\t";
     }
+    std::cout << "\n";
+  }
 }
 
-void sol_to_file(int **mat, int **sol_mat, int m, int n, string fname)
-{
+void sol_to_file(int** mat, int** sol_mat, int m, int n, string fname){
 
-    string outfname = "visualize.kakuro";
-    ofstream to_write(outfname);
+  string outfname = "visualize.kakuro";
+  ofstream to_write(outfname);
 
-    to_write << m << " " << n << "\n";
+  to_write << m << " " << n << "\n";
 
-    for (int i = 0; i < m; i++)
-    {
-        for (int j = 0; j < n; j++)
-        {
-            if (mat[i][j] != -2)
-                to_write << mat[i][j] << " ";
-            else
-                to_write << sol_mat[i][j] << " ";
-        }
-        to_write << "\n";
+  for(int i = 0; i < m; i++){
+    for(int j = 0; j < n; j++){
+      if(mat[i][j] != -2)
+	to_write << mat[i][j] << " ";
+      else
+	to_write << sol_mat[i][j] << " ";
     }
+    to_write << "\n";
+  }
 
-    to_write.close();
+  to_write.close();
 }
 
-void read_matrix(int **&matrix, std::ifstream &afile, int m, int n)
-{
+void read_matrix(int** &matrix, std::ifstream &afile, int m, int n){
 
-    matrix = new int *[m]; // rows
+  matrix = new int*[m]; //rows
 
-    for (int i = 0; i < m; i++)
-    {
-        matrix[i] = new int[n]; // cols
+  for(int i = 0; i < m; i++){
+    matrix[i] = new int[n]; //cols
+  }
+
+  int val;
+  for(int i = 0; i < m; i++){
+    for(int j = 0; j < n; j++){
+      afile >> val;
+      matrix[i][j] = val;
     }
-
-    int val;
-    for (int i = 0; i < m; i++)
-    {
-        for (int j = 0; j < n; j++)
-        {
-            afile >> val;
-            matrix[i][j] = val;
-        }
-    }
+  }
 }
 
-/// Auxiliary functions
+///Auxiliary functions
 
-struct sum
-{
-    COORD start;
-    COORD end;
+struct sum{
+  COORD start;
+  COORD end;
 
-    int hint;
-    int dir;
-    int length;
-    int *arr;
+  int hint;
+  int dir;
+  int length;
+  int* arr;
 
-    void print_sum()
-    {
-        cout << "############################" << endl;
-        cout << "Creating sum with: " << endl;
-        print_coords(start, end);
-        cout << "Hint: " << hint << endl;
-        cout << "Direction: " << dir << endl;
-        cout << "Length: " << length << endl;
-        cout << "############################" << endl;
-    }
-
-    sum(COORD _start, COORD _end, int _hint, direction _dir) : start(_start), end(_end), hint(_hint), dir(_dir)
-    {
-        length = find_length(_start, _end, _dir);
-        arr = new int[length];
-#ifdef DEBUG
-        cout << "############################" << endl;
-        cout << "Creating sum with: " << endl;
-        print_coords(start, end);
-        cout << "Hint: " << hint << endl;
-        cout << "Direction: " << dir << endl;
-        cout << "Length: " << length << endl;
-        cout << "############################" << endl;
-#endif
-    }
-
-    //~sum(){
-    // delete arr;
-    //}
+  void print_sum(){
+    cout << "############################" << endl;
+    cout << "Creating sum with: " << endl;
+    print_coords(start, end);
+    cout << "Hint: " << hint << endl;
+    cout << "Direction: " << dir << endl;
+    cout << "Length: " << length << endl;
+    cout << "############################" << endl;
+  }
+  
+  sum(COORD _start, COORD _end, int _hint, direction _dir):
+    start(_start), end(_end), hint(_hint), dir(_dir)
+  {
+    length = find_length(_start, _end, _dir);
+    arr = new int[length];
+    #ifdef DEBUG
+    cout << "############################" << endl;
+    cout << "Creating sum with: " << endl;
+    print_coords(start, end);
+    cout << "Hint: " << hint << endl;
+    cout << "Direction: " << dir << endl;
+    cout << "Length: " << length << endl;
+    cout << "############################" << endl;
+    #endif
+  }
+  
+  //~sum(){
+  //delete arr;
+  //}
 };
 
-COORD find_end(int **matrix, int m, int n, int i, int j, direction dir)
-{ // 0 down 1 right
 
-    if (dir == d_right)
-    {
-        for (int jj = j + 1; jj < n; jj++)
-        {
-            if (matrix[i][jj] != -2 || jj == n - 1)
-            {
-                if (matrix[i][jj] == -2 && jj == n - 1)
-                    jj++;
-                COORD END = COORD(i, jj);
-                return END;
-            }
-        }
-    }
+COORD find_end(int** matrix, int m, int n, int i, int j, direction dir){ //0 down 1 right
 
-    if (dir == d_down)
-    {
-        for (int ii = i + 1; ii < m; ii++)
-        {
-            if (matrix[ii][j] != -2 || ii == m - 1)
-            {
-                if (matrix[ii][j] == -2 && ii == m - 1)
-                    ii++;
-                COORD END = COORD(ii, j);
-                return END;
-            }
-        }
+  if(dir == d_right){
+    for(int jj = j+1; jj < n; jj++){
+      if(matrix[i][jj] != -2 || jj == n - 1){
+	if(matrix[i][jj] == -2 && jj == n -1)
+	  jj++;
+	COORD END = COORD(i, jj);
+	return END;
+      }
     }
-     return make_pair(-1, -1);
+  }
+
+  if(dir == d_down){
+    for(int ii = i+1; ii < m; ii++){
+      if(matrix[ii][j] != -2 || ii == m - 1){
+	if(matrix[ii][j] == -2 && ii == m - 1)
+	  ii++;
+	COORD END = COORD(ii, j);
+	return END;
+      }
+    }
+  }
+  
 }
 
-vector<sum> get_sums(int **matrix, int m, int n)
-{
 
-    vector<sum> sums;
+vector<sum> get_sums(int** matrix, int m, int n){
 
-    for (int i = 0; i < m; i++)
-    {
-        for (int j = 0; j < n; j++)
-        {
-            int val = matrix[i][j];
-            if (val != -1 && val != -2)
-            {
-                int hint = val;
-                hint = hint / 10;
+  vector<sum> sums;
+  
+  for(int i = 0; i < m; i++){
+    for(int j = 0; j < n; j++){
+      int val = matrix[i][j];
+      if(val != -1 && val != -2){
+	int hint = val;
+	hint = hint / 10;
 
 	if((hint%100) == 0){
 	  hint = (int)(hint/100); //Position right
 	  COORD START = COORD(i, j+1); 
 	  COORD END = find_end(matrix, m, n, i, j, d_right);
-	  sum _sum = sum(START, END, hint, d_right);
-       
+	  sum _sum = sum(START, END, hint, d_right); 
 	  sums.push_back(_sum);
 	}
 
-                else
-                {
-                    int div = (int)(hint / 100); // Positon down
-                    int rem = (int)(hint % 100);
+	else{
+	  int div = (int)(hint/100);  //Positon down
+	  int rem = (int)(hint%100);
+   
+	  if(div == 0 && rem != 0){
+	    COORD START = COORD(i+1,j);
+	    COORD END = find_end(matrix, m, n, i, j, d_down);
+	    sum _sum = sum(START, END, rem, d_down);
+	    sums.push_back(_sum);
+	  }
 
-                    if (div == 0 && rem != 0)
-                    {
-                        COORD START = COORD(i + 1, j);
-                        COORD END = find_end(matrix, m, n, i, j, d_down);
-                        sum _sum = sum(START, END, rem, d_down);
-                        sums.push_back(_sum);
-                    }
+	  if(div != 0 && rem != 0){
+	    COORD START1 = COORD(i+1,j);
+	    COORD START2 = COORD(i,j+1);
+	    COORD END1 = find_end(matrix, m, n, i, j, d_down);
+	    COORD END2 = find_end(matrix, m, n, i, j, d_right);
+	    sum _sum1 = sum(START1, END1, rem, d_down);
+	    sum _sum2 = sum(START2, END2, div, d_right);
+	    sums.push_back(_sum1);
+	    sums.push_back(_sum2);
+	  }
+	}
+      }
 
-                    if (div != 0 && rem != 0)
-                    {
-                        COORD START1 = COORD(i + 1, j);
-                        COORD START2 = COORD(i, j + 1);
-                        COORD END1 = find_end(matrix, m, n, i, j, d_down);
-                        COORD END2 = find_end(matrix, m, n, i, j, d_right);
-                        sum _sum1 = sum(START1, END1, rem, d_down);
-                        sum _sum2 = sum(START2, END2, div, d_right);
-                        sums.push_back(_sum1);
-                        sums.push_back(_sum2);
-                    }
-                }
-            }
-        }
+      
     }
-    return sums;
+  }
+  return sums;
 }
 
-pair<int, int> find_unassigned_location(int **sol_mat, int m, int n)
-{
-    for (int row = 0; row < m; row++){
-         for (int col = 0; col < n; col++)
-        { //cout<<"Visiting row and col :  "<< row <<" "<< col <<endl;
-            if (sol_mat[row][col] == -2)
-            { 
-                return make_pair(row, col);
-            }
-        }
-
-
-    } 
-    return make_pair(-1, -1);
+pair<int, int> find_unassigned_location(int** sol_mat, int m, int n) {
+  for (int row = 0; row < m; row++) {
+    for (int col = 0; col < n; col++) {
+      if (sol_mat[row][col] == -2) {
+        return make_pair(row, col);
+      }
+    }
+  }
+  return make_pair(-1, -1);
 }
 
 bool is_safe(int** sol_mat, int row, int col, int num, const vector<sum>& sums, int m ,int n) {
   
-  
-  // Check if the number is valid according to the sum hints
-  /*
-  for (int j = 0; j < m; j++) {
-    if (sol_mat[row][j] == num && j!= col && ) {
-      return false;
-    }
-  }
-   for (int j = 0; j < n; j++) {
-    if (sol_mat[j][col] == num && j != row) {
-      return false;
-    }
-  }
-    */
+
   for (const sum& s : sums) {
     if ((s.dir == d_down && col == s.start.second && row >= s.start.first && row < s.end.first) ||
         (s.dir == d_right && row == s.start.first && col >= s.start.second && col < s.end.second)) {
@@ -335,46 +289,31 @@ bool is_safe(int** sol_mat, int row, int col, int num, const vector<sum>& sums, 
         }
       }
 
-            if((sum_value > s.hint) || ((last_cell && sum_value != s.hint)))
-            { // if sum value satisifes sum constraint then the numbers are correct
-                return false;
-            }
-        }
+      if (sum_value > s.hint || (last_cell && sum_value != s.hint)) {//if sum value satisifes sum constraint then the numbers are correct 
+        return false;
+      }
     }
+  }
 
-    return true;
+  return true;
 }
 
+
+
 // Rename validNumberCheck to solve_kakuro_helper
-bool validNumberCheck(int **sol_mat, int m, int n, const vector<sum> &sums)
-{
-    pair<int, int> unassigned_location = find_unassigned_location(sol_mat, m, n);
-    if (unassigned_location.first == -1)
-    {
-        return true;
-    }
-
-    int row = unassigned_location.first;
-    int col = unassigned_location.second;
-    bool solution_found = false;
-
-    for (int num = 1; num <= 9; num++)
-    { //  cout<<"Visiting row and col :  "<<row <<" "<< col <<endl;
-
-        if (is_safe(sol_mat, row, col, num, sums, m, n))
-        {
-
-            // #pragma omp task firstprivate(row, col, num)
-            //           {
-            int **task_sol_mat = new int *[m];
+bool validNumberCheck(int** sol_mat, int m, int n, const vector<sum>& sums) {
+  pair<int, int> unassigned_location = find_unassigned_location(sol_mat, m, n);
+  if (unassigned_location.first == -1) {
+    return true;
+  }
+  
+  int row = unassigned_location.first;
+  int col = unassigned_location.second;
 
   for (int num = 1; num <= 9; num++) {
     sol_mat[row][col] = num;
     if (is_safe(sol_mat, row, col, num, sums,m,n) ) {
         //pair<int, int> unassigned_location_next = find_unassigned_location(sol_mat, m, n);
-
-       //cout << "Trying number " << num << " at row " << row << " and col " << col << endl;
-       // print_one_matrix(sol_mat, m, n);
       if (validNumberCheck(sol_mat, m, n, sums)) {
         return true;
       }
@@ -384,17 +323,28 @@ bool validNumberCheck(int **sol_mat, int m, int n, const vector<sum> &sums)
     sol_mat[row][col] = -2;
   }
 
-    // #pragma omp taskwait
-    return solution_found;
+  return false;
 }
 
-bool solution(int **mat, int **&sol_mat, vector<sum> sums, int m, int n)
-{
 
-    // TO DO: Write the solution
-    // You can use any algorithm and data type
-    // Write your solution to file in main function using sol_to_mat() after solving it
-    return validNumberCheck(sol_mat, m, n, sums);
+
+
+  
+  
+
+
+ 
+
+
+
+
+bool solution(int** mat, int** &sol_mat, vector<sum> sums, int m, int n){
+
+  //TO DO: Write the solution
+  //You can use any algorithm and data type
+  //Write your solution to file in main function using sol_to_mat() after solving it
+   return validNumberCheck(sol_mat, m, n, sums);
+  
 }
 
 int main(int argc, char** argv){
@@ -405,7 +355,8 @@ int main(int argc, char** argv){
   int m, n;
   file >> m;
   file >> n;
- double start_time, run_time;
+   double start_time, run_time;
+
   int** mat;
   read_matrix(mat, file, m, n);
   print_one_matrix(mat, m, n);
@@ -415,18 +366,20 @@ int main(int argc, char** argv){
   print_one_matrix(sol_mat, m, n);
   
   vector<sum> sums = get_sums(mat, m, n);
-   start_time = omp_get_wtime();
+  start_time = omp_get_wtime();
   solution(mat, sol_mat, sums, m, n);
   auto end = std::chrono::high_resolution_clock::now(); // Record the end time
    run_time = omp_get_wtime() - start_time;
-   cout << "Solution on board:  "<< filename <<"is "<<run_time<<" seconds"<<endl;
+   cout << "Solution on board:  "<< filename <<" is "<<run_time<<" seconds"<<endl;
   print_one_matrix(sol_mat, m, n);
   sol_to_file(mat, sol_mat, m, n, "solution.kakuro");
+  
   
   for(int i = 0; i < n; i++){
     delete mat[i];
     delete sol_mat[i];
   }
+
   delete mat;
   delete sol_mat;
   
