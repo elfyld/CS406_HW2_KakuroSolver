@@ -8,7 +8,7 @@
 #include <bits/stdc++.h>
 #include <array>
 #include <unordered_set>
-
+#include <omp.h>
 using namespace std;
 
 enum direction {d_down, d_right, none};
@@ -58,7 +58,7 @@ void convert_sol(int** mat, int** &sol_mat, int m, int n){
   }
 
   for(int i = 0; i < m; i++){
-    for(int j = 0; j < m; j++){
+    for(int j = 0; j < n; j++){
       if(mat[i][j] == -2)
 	sol_mat[i][j] = -2; //Empty value cell
       else
@@ -200,7 +200,7 @@ vector<sum> get_sums(int** matrix, int m, int n){
 	  COORD START = COORD(i, j+1); 
 	  COORD END = find_end(matrix, m, n, i, j, d_right);
 	  sum _sum = sum(START, END, hint, d_right);
-      _sum.print_sum(); 
+       
 	  sums.push_back(_sum);
 	}
 
@@ -328,8 +328,8 @@ bool validNumberCheck(int** sol_mat, int m, int n, const vector<sum>& sums) {
     if (is_safe(sol_mat, row, col, num, sums,m,n) ) {
         //pair<int, int> unassigned_location_next = find_unassigned_location(sol_mat, m, n);
 
-       cout << "Trying number " << num << " at row " << row << " and col " << col << endl;
-        print_one_matrix(sol_mat, m, n);
+       //cout << "Trying number " << num << " at row " << row << " and col " << col << endl;
+       // print_one_matrix(sol_mat, m, n);
       if (validNumberCheck(sol_mat, m, n, sums)) {
         return true;
       }
@@ -371,7 +371,7 @@ int main(int argc, char** argv){
   int m, n;
   file >> m;
   file >> n;
-
+ double start_time, run_time;
   int** mat;
   read_matrix(mat, file, m, n);
   print_one_matrix(mat, m, n);
@@ -381,9 +381,11 @@ int main(int argc, char** argv){
   print_one_matrix(sol_mat, m, n);
   
   vector<sum> sums = get_sums(mat, m, n);
-
-  cout << "Solution: " <<solution(mat, sol_mat, sums, m, n) << endl;
-
+   start_time = omp_get_wtime();
+  solution(mat, sol_mat, sums, m, n);
+  auto end = std::chrono::high_resolution_clock::now(); // Record the end time
+   run_time = omp_get_wtime() - start_time;
+   cout << "Solution on board:  "<< filename <<"is "<<run_time<<" seconds"<<endl;
   print_one_matrix(sol_mat, m, n);
   sol_to_file(mat, sol_mat, m, n, "solution.kakuro");
   
@@ -391,7 +393,6 @@ int main(int argc, char** argv){
     delete mat[i];
     delete sol_mat[i];
   }
-
   delete mat;
   delete sol_mat;
   
