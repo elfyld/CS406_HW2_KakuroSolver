@@ -7,6 +7,7 @@
 
 #include <bits/stdc++.h>
 #include <array>
+#include <unordered_set>
 
 using namespace std;
 
@@ -248,8 +249,9 @@ bool is_safe(int** sol_mat, int row, int col, int num, const vector<sum>& sums, 
   
   
   // Check if the number is valid according to the sum hints
+  /*
   for (int j = 0; j < m; j++) {
-    if (sol_mat[row][j] == num && j!= col) {
+    if (sol_mat[row][j] == num && j!= col && ) {
       return false;
     }
   }
@@ -258,7 +260,7 @@ bool is_safe(int** sol_mat, int row, int col, int num, const vector<sum>& sums, 
       return false;
     }
   }
-
+    */
   for (const sum& s : sums) {
     if ((s.dir == d_down && col == s.start.second && row >= s.start.first && row < s.end.first) ||
         (s.dir == d_right && row == s.start.first && col >= s.start.second && col < s.end.second)) {
@@ -266,7 +268,15 @@ bool is_safe(int** sol_mat, int row, int col, int num, const vector<sum>& sums, 
       int sum_value = num;
       bool last_cell = false;
       if (s.dir == d_down) {
+        std::unordered_set<int> num_set;
+
         for (int i = s.start.first; i < s.end.first; i++) {
+          if (num_set.find(sol_mat[i][col]) == num_set.end()){
+            if (sol_mat[i][col] != -2)
+                num_set.insert(sol_mat[i][col]);
+          }else{
+            return false;
+          }  
           if (i != row && sol_mat[i][col] != -2) {
             sum_value += sol_mat[i][col];
           }
@@ -275,7 +285,14 @@ bool is_safe(int** sol_mat, int row, int col, int num, const vector<sum>& sums, 
           }
         }
       } else {
+        std::unordered_set<int> num_set2;
         for (int j = s.start.second; j < s.end.second; j++) {
+          if (num_set2.find(sol_mat[row][j]) == num_set2.end()){
+            if (sol_mat[row][j] != -2)
+                num_set2.insert(sol_mat[row][j]);
+          }else{
+            return false;
+          } 
           if (j != col && sol_mat[row][j] != -2) {
             sum_value += sol_mat[row][j];
           }
@@ -307,16 +324,19 @@ bool validNumberCheck(int** sol_mat, int m, int n, const vector<sum>& sums) {
   int col = unassigned_location.second;
 
   for (int num = 1; num <= 9; num++) {
+    sol_mat[row][col] = num;
     if (is_safe(sol_mat, row, col, num, sums,m,n) ) {
-      sol_mat[row][col] = num;
-       cout << "Trying number " << num << " at row " << row << " and col " << col << endl;
+        //pair<int, int> unassigned_location_next = find_unassigned_location(sol_mat, m, n);
 
+       cout << "Trying number " << num << " at row " << row << " and col " << col << endl;
+        print_one_matrix(sol_mat, m, n);
       if (validNumberCheck(sol_mat, m, n, sums)) {
         return true;
       }
 
-      sol_mat[row][col] = -2;
+      
     }
+    sol_mat[row][col] = -2;
   }
 
   return false;
